@@ -1,0 +1,13 @@
+/* Estilos Complementares - Mantendo padrão do arquivo anterior */
+body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+@media print {
+    .hide-on-print, aside, header, button { display: none !important; }
+    #app-screen { display: block !important; height: auto !important; }
+    main { display: block !important; height: auto !important; margin: 0 !important; width: 100% !important; }
+    .print-area { overflow: visible !important; height: auto !important; background-color: white !important; padding: 0 !important; }
+    * { color: #000 !important; }
+}

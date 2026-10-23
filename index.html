@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestão Empresarial - Com Banco de Dados</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- FIREBASE SDKs (Versão Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-auth-compat.js"></script>
+</head>
+<body class="bg-gray-100 font-sans text-gray-800">
+    <!-- Login Modal -->
+    <div id="login-screen" class="min-h-screen flex items-center justify-center bg-gray-900 absolute inset-0 z-50">
+        <div class="bg-white p-8 rounded-lg shadow-xl w-96">
+            <h2 class="text-2xl font-bold mb-2 text-center text-gray-800">Gestão PRO</h2>
+            <p class="text-center text-gray-500 mb-6 text-sm">Acesso integrado ao Banco de Dados</p>
+            <form id="login-form">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">E-mail da Empresa</label>
+                    <input type="email" id="login-email" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" placeholder="admin@empresa.com" required>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Senha</label>
+                    <input type="password" id="login-senha" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" required>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition">Acessar Sistema</button>
+            </form>
+            <p id="login-erro" class="text-red-500 text-sm text-center mt-3 hidden">Credenciais inválidas.</p>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app-screen" class="hidden flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-gray-900 text-white flex flex-col hide-on-print">
+            <div class="p-6 border-b border-gray-800 flex items-center">
+                <i class="fas fa-database text-2xl text-blue-500 mr-3"></i>
+                <div>
+                    <h1 class="text-xl font-bold uppercase tracking-wider">Gestão PRO</h1>
+                    <p class="text-xs text-green-400"><i class="fas fa-circle text-[8px] mr-1"></i> Online (Firebase)</p>
+                </div>
+            </div>
+            <nav class="flex-1 overflow-y-auto py-4">
+                <ul class="space-y-2">
+                    <li><a href="#" onclick="showSection('dashboard')" class="block px-6 py-3 hover:bg-gray-800 transition"><i class="fas fa-home mr-3 w-5 text-center"></i> Dashboard</a></li>
+                    <li><a href="#" onclick="showSection('empresas')" class="block px-6 py-3 hover:bg-gray-800 transition"><i class="fas fa-building mr-3 w-5 text-center"></i> Empresas (DB)</a></li>
+                    <li><a href="#" onclick="showSection('funcionarios')" class="block px-6 py-3 hover:bg-gray-800 transition"><i class="fas fa-users mr-3 w-5 text-center"></i> Funcionários</a></li>
+                    <li><a href="#" onclick="showSection('financeiro')" class="block px-6 py-3 hover:bg-gray-800 transition"><i class="fas fa-wallet mr-3 w-5 text-center"></i> Financeiro (DB)</a></li>
+                </ul>
+            </nav>
+            <div class="p-4 border-t border-gray-800">
+                <button onclick="logout()" class="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded transition flex items-center justify-center"><i class="fas fa-sign-out-alt mr-2"></i> Sair</button>
+            </div>
+        </aside>
+
+        <!-- Content -->
+        <main class="flex-1 flex flex-col h-screen relative">
+            <header class="bg-white shadow-sm h-16 flex items-center justify-between px-6 z-10 hide-on-print">
+                <h2 id="section-title" class="text-xl font-semibold text-gray-800">Dashboard</h2>
+                <button onclick="window.print()" class="bg-blue-50 text-blue-600 px-3 py-1.5 rounded hover:bg-blue-100 text-sm flex items-center"><i class="fas fa-print mr-2"></i> Imprimir</button>
+            </header>
+
+            <div class="flex-1 overflow-y-auto p-6 bg-gray-50 print-area" id="content-area">
+                
+                <!-- Dashboard Section -->
+                <section id="sec-dashboard" class="space-y-6">
+                    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100 text-center py-10">
+                        <i class="fas fa-cloud text-5xl text-blue-500 mb-4"></i>
+                        <h2 class="text-2xl font-bold text-gray-700">Sistema Conectado ao Banco de Dados</h2>
+                        <p class="text-gray-500 mt-2">Os dados inseridos nas abas laterais agora são salvos permanentemente no Google Firebase.</p>
+                    </div>
+                </section>
+
+                <!-- Empresas Section -->
+                <section id="sec-empresas" class="hidden space-y-6">
+                    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="font-bold text-gray-700 text-lg">Empresas no Banco de Dados</h3>
+                            <button onclick="document.getElementById('form-add-empresa').classList.toggle('hidden')" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 text-sm font-semibold"><i class="fas fa-plus mr-2"></i> Adicionar CNPJ</button>
+                        </div>
+
+                        <!-- Formulário de Adição de Empresa -->
+                        <form id="form-add-empresa" class="hidden mb-6 bg-gray-50 p-4 rounded border border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">Razão Social</label>
+                                <input type="text" id="nova-empresa-nome" required class="w-full p-2 border rounded">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">CNPJ</label>
+                                <input type="text" id="nova-empresa-cnpj" required class="w-full p-2 border rounded">
+                            </div>
+                            <div class="flex items-end">
+                                <button type="submit" class="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700 font-bold">Salvar no Firebase</button>
+                            </div>
+                        </form>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-gray-50 text-gray-600 uppercase text-xs tracking-wider">
+                                        <th class="p-3 border-b">Razão Social</th>
+                                        <th class="p-3 border-b">CNPJ</th>
+                                        <th class="p-3 border-b text-right">Ação</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabela-empresas">
+                                    <!-- Os dados virão do Firebase -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Financeiro Section (Exemplo) -->
+                <section id="sec-financeiro" class="hidden space-y-6">
+                    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="font-bold text-gray-700 text-lg">Contas a Pagar (Sincronizado)</h3>
+                            <button onclick="document.getElementById('form-add-conta').classList.toggle('hidden')" class="bg-red-500 text-white px-4 py-2 rounded shadow hover:bg-red-600 text-sm font-semibold"><i class="fas fa-plus mr-2"></i> Nova Despesa</button>
+                        </div>
+
+                        <form id="form-add-conta" class="hidden mb-6 bg-red-50 p-4 rounded border border-red-200 grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-bold text-gray-700 mb-1">Descrição da Despesa</label>
+                                <input type="text" id="nova-conta-desc" required class="w-full p-2 border rounded">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">Valor (R$)</label>
+                                <input type="number" step="0.01" id="nova-conta-valor" required class="w-full p-2 border rounded">
+                            </div>
+                            <div class="flex items-end">
+                                <button type="submit" class="w-full bg-red-600 text-white p-2 rounded hover:bg-red-700 font-bold">Lançar Despesa</button>
+                            </div>
+                        </form>
+
+                        <ul id="lista-contas" class="space-y-3">
+                            <!-- Os dados virão do Firebase -->
+                        </ul>
+                    </div>
+                </section>
+                
+                <!-- Secoes vazias para manter compatibilidade com menu -->
+                <section id="sec-funcionarios" class="hidden"><p class="p-6">Integração Firestore a ser expandida seguindo o modelo Empresas.</p></section>
+
+            </div>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
